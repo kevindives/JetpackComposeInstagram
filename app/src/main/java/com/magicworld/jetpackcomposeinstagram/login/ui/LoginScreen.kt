@@ -1,7 +1,6 @@
-package com.magicworld.jetpackcomposeinstagram
+package com.magicworld.jetpackcomposeinstagram.login.ui
 
 import android.app.Activity
-import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +13,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -28,18 +28,29 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.util.regex.Pattern
+import com.magicworld.jetpackcomposeinstagram.R
 
 @Composable
-fun LoginScreen() {
+fun LoginScreen(loginViewModel: LoginViewModel) {
+    val isLoading by loginViewModel.isLoading.observeAsState(initial = false)
     Box(
         Modifier
             .fillMaxSize()
             .padding(8.dp)
     ) {
-        Header(Modifier.align(Alignment.TopEnd))
-        Body(Modifier.align(Alignment.Center))
-        Footer(Modifier.align(Alignment.BottomCenter))
+        if (isLoading) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+            ) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        } else {
+            Header(Modifier.align(Alignment.TopEnd))
+            Body(Modifier.align(Alignment.Center), loginViewModel)
+            Footer(Modifier.align(Alignment.BottomCenter))
+        }
+
     }
 }
 
@@ -54,11 +65,11 @@ fun Header(modifier: Modifier) {
 }
 
 @Composable
-fun Body(modifier: Modifier) {
+fun Body(modifier: Modifier, loginViewModel: LoginViewModel) {
 
-    var email by rememberSaveable { mutableStateOf("") }
-    var password by rememberSaveable { mutableStateOf("") }
-    var isLoginEnable by rememberSaveable { mutableStateOf(false) }
+    val email: String by loginViewModel.email.observeAsState(initial = "")
+    val password: String by loginViewModel.password.observeAsState(initial = "")
+    val isLoginEnable by loginViewModel.isLoginEnable.observeAsState(initial = false)
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
 
@@ -66,16 +77,14 @@ fun Body(modifier: Modifier) {
 
         Spacer(modifier = Modifier.size(16.dp))
 
-        Email(email) {
-            email = it
-            isLoginEnable = enableLogin(email , password)
+        Email(email) { email ->
+            loginViewModel.onLoginChanged(email = email, password = password)
         }
 
         Spacer(modifier = Modifier.size(4.dp))
 
-        Password(password) {
-            password = it
-            isLoginEnable = enableLogin(email , password)
+        Password(password) { password ->
+            loginViewModel.onLoginChanged(email = email, password = password)
         }
 
         Spacer(modifier = Modifier.size(8.dp))
@@ -84,7 +93,7 @@ fun Body(modifier: Modifier) {
 
         Spacer(modifier = Modifier.size(16.dp))
 
-        LoginButton(isLoginEnable)
+        LoginButton(isLoginEnable, loginViewModel)
 
         Spacer(modifier = Modifier.size(16.dp))
 
@@ -180,9 +189,9 @@ fun ForgotPassWord(modifier: Modifier) {
 }
 
 @Composable
-fun LoginButton(loginEnable: Boolean) {
+fun LoginButton(loginEnable: Boolean, loginViewModel: LoginViewModel) {
     Button(
-        onClick = { },
+        onClick = { loginViewModel.onLoginSelected() },
         enabled = loginEnable,
         modifier = Modifier.fillMaxWidth(),
         colors = ButtonDefaults.buttonColors(
@@ -194,10 +203,6 @@ fun LoginButton(loginEnable: Boolean) {
     ) {
         Text(text = "Log in")
     }
-}
-
-fun enableLogin(email: String, password: String): Boolean{
-    return Patterns.EMAIL_ADDRESS.matcher(email).matches() && password.length > 6
 }
 
 @Composable
